@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>notes-api</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-glow-1: rgba(99, 102, 241, .25);
+      --bg-glow-2: rgba(236, 72, 153, .18);
+      --card: rgba(255, 255, 255, .06);
+      --card-border: rgba(255, 255, 255, .10);
+      --text: #e8eaf6;
+      --muted: #8b93b5;
+      --input-bg: rgba(255, 255, 255, .05);
+      --accent-from: #6366f1;
+      --accent-to: #ec4899;
+      --danger: #fb7185;
+    }
+    [data-theme="light"] {
+      --bg: #f5f6fb;
+      --bg-glow-1: rgba(99, 102, 241, .16);
+      --bg-glow-2: rgba(236, 72, 153, .12);
+      --card: #ffffff;
+      --card-border: #e5e8f2;
+      --text: #1c2033;
+      --muted: #6b728f;
+      --input-bg: #f8f9fd;
+      --danger: #e11d48;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(600px 400px at 10% -5%, var(--bg-glow-1), transparent),
+        radial-gradient(600px 400px at 95% 5%, var(--bg-glow-2), transparent),
+        var(--bg);
+      padding: 2.5rem 1rem 4rem;
+      transition: background .3s, color .3s;
+    }
+    main { max-width: 680px; margin: 0 auto; }
+
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.75rem; }
+    .brand { display: flex; align-items: center; gap: .75rem; }
+    .logo {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: grid; place-items: center; font-size: 1.4rem;
+      background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+      box-shadow: 0 8px 24px rgba(99, 102, 241, .35);
+    }
+    h1 { margin: 0; font-size: 1.7rem; letter-spacing: -.02em; }
+    .count {
+      font-size: .8rem; font-weight: 600; padding: .15rem .6rem; margin-left: .5rem;
+      border-radius: 999px; vertical-align: middle;
+      background: linear-gradient(135deg, var(--accent-from), var(--accent-to)); color: #fff;
+    }
+    #theme {
+      width: 42px; height: 42px; border-radius: 12px; font-size: 1.1rem; cursor: pointer;
+      background: var(--card); border: 1px solid var(--card-border); color: var(--text);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
+    }
+    form { display: flex; flex-direction: column; gap: .8rem; padding: 1.4rem; margin-bottom: 2rem; }
+    .field { position: relative; display: flex; flex-direction: column; }
+    input, textarea {
+      font: inherit; color: var(--text);
+      padding: .8rem 1rem; border-radius: 10px; resize: vertical;
+      background: var(--input-bg); border: 1px solid var(--card-border);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    input:focus, textarea:focus {
+      outline: none; border-color: var(--accent-from);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, .22);
+    }
+    .hint { align-self: flex-end; font-size: .75rem; color: var(--muted); margin-top: .25rem; }
+
+    .add {
+      font: inherit; font-weight: 600; color: #fff; border: none; cursor: pointer;
+      padding: .85rem 1rem; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+      box-shadow: 0 8px 20px rgba(99, 102, 241, .3);
+      transition: transform .12s, box-shadow .12s, filter .12s;
+    }
+    .add:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .add:active { transform: translateY(0); }
+    #error { color: var(--danger); font-size: .9rem; }
+    #error:empty { display: none; }
+
+    ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .85rem; }
+    li {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+      padding: 1.1rem 1.25rem; border-left: 5px solid var(--note-color);
+      animation: pop .25s ease-out;
+    }
+    @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .note-title { font-weight: 700; font-size: 1.05rem; }
+    .note-body { margin: .3rem 0 .5rem; color: var(--text); opacity: .85; white-space: pre-wrap; word-break: break-word; }
+    .note-date { font-size: .78rem; color: var(--muted); }
+    .del {
+      font: inherit; font-size: .85rem; cursor: pointer; padding: .4rem .75rem; border-radius: 8px;
+      background: transparent; color: var(--danger); border: 1px solid var(--card-border);
+      transition: background .15s, border-color .15s;
+    }
+    .del:hover { background: rgba(251, 113, 133, .12); border-color: var(--danger); }
+
+    #empty { text-align: center; color: var(--muted); padding: 2.5rem 0; }
+    #empty .big { font-size: 2.5rem; display: block; margin-bottom: .5rem; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand">
+      <div class="logo">📝</div>
+      <h1>Notes<span class="count" id="count">0</span></h1>
+    </div>
+    <button id="theme" type="button" title="Toggle light/dark">🌙</button>
+  </header>
+
+  <form id="note-form" class="card">
+    <div class="field">
+      <input id="title" placeholder="Note title" maxlength="100" required>
+      <span class="hint"><span id="title-count">0</span>/100</span>
+    </div>
+    <textarea id="content" placeholder="Write something... (optional)" rows="3"></textarea>
+    <button class="add" type="submit">＋ Add note</button>
+    <span id="error"></span>
+  </form>
+
+  <ul id="notes"></ul>
+  <div id="empty" hidden><span class="big">🗒️</span>No notes yet. Add your first one above.</div>
+</main>
+
+  <script>
+    const list = document.getElementById("notes");
+    const form = document.getElementById("note-form");
+    const errorBox = document.getElementById("error");
+    const titleInput = document.getElementById("title");
+    const colors = ["#6366f1", "#ec4899", "#14b8a6", "#f59e0b", "#3b82f6", "#a855f7"];
+
+    // GET /notes -> redraw the whole list
+    async function loadNotes() {
+      const response = await fetch("/notes");
+      const notes = await response.json();
+      list.replaceChildren();
+      document.getElementById("empty").hidden = notes.length > 0;
+      document.getElementById("count").textContent = notes.length;
+      for (const note of notes) {
+        const item = document.createElement("li");
+        item.className = "card";
+        item.style.setProperty("--note-color", colors[note.id % colors.length]);
+
+        const text = document.createElement("div");
+        const title = document.createElement("div");
+        title.className = "note-title";
+        title.textContent = note.title;            // textContent: never run user text as HTML
+        const body = document.createElement("div");
+        body.className = "note-body";
+        body.textContent = note.content;
+        const date = document.createElement("div");
+        date.className = "note-date";
+        date.textContent = new Date(note.created_at).toLocaleString();
+        text.append(title, body, date);
+
+        const del = document.createElement("button");
+        del.className = "del";
+        del.textContent = "Delete";
+        del.addEventListener("click", () => deleteNote(note.id));
+
+        item.append(text, del);
+        list.append(item);
+      }
+    }
+
+    // POST /notes
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();                      // stop the browser reloading the page
+      errorBox.textContent = "";
+      const response = await fetch("/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: titleInput.value,
+          content: document.getElementById("content").value,
+        }),
+      });
+      if (!response.ok) {
+        errorBox.textContent = "Could not save the note (error " + response.status + ")";
+        return;
+      }
+      form.reset();
+      document.getElementById("title-count").textContent = "0";
+      loadNotes();
+    });
+
+    // DELETE /notes/{id}
+    async function deleteNote(id) {
+      await fetch("/notes/" + id, { method: "DELETE" });
+      loadNotes();
+    }
+
+    titleInput.addEventListener("input", () => {
+      document.getElementById("title-count").textContent = titleInput.value.length;
+    });
+
+    // Light/dark toggle, remembered in the browser (wrapped: storage can be blocked)
+    const themeButton = document.getElementById("theme");
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      themeButton.textContent = theme === "dark" ? "🌙" : "☀️";
+      try { localStorage.setItem("theme", theme); } catch (e) {}
+    }
+    themeButton.addEventListener("click", () => {
+      applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+    });
+    try { applyTheme(localStorage.getItem("theme") || "dark"); } catch (e) {}
+
+    loadNotes();
+  </script>
+</body>
+</html>
