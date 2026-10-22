@@ -1,9 +1,0 @@
- .env
-  __pycache__/
-  *.pyc
-  .venv/
-  ml/data/
-  *.pem
-  *.tfstate
-  *.tfstate.backup
-  .terraform/
