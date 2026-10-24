@@ -3,8 +3,11 @@ from datetime import datetime, timezone
 from app.schemas.report import Report
 
 
+MAX_REPORTS = 100  # keep memory and list size steady under hours of traffic
+
+
 class ReportRepository:
-    """Storage layer: keeps finished reports in memory. Lost on restart."""
+    """Storage layer: keeps the last MAX_REPORTS reports in memory. Lost on restart."""
 
     def __init__(self) -> None:
         self._reports: dict[int, Report] = {}
@@ -20,6 +23,9 @@ class ReportRepository:
         )
         self._reports[report.id] = report
         self._next_id += 1
+        if len(self._reports) > MAX_REPORTS:
+            oldest_id = next(iter(self._reports))  # dicts keep insertion order
+            del self._reports[oldest_id]
         return report
 
     def list_all(self) -> list[Report]:
