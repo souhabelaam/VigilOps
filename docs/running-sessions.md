@@ -44,6 +44,15 @@ Result in the session folder: `metrics.csv` (the numbers) and `labels.csv` (when
 fault started and ended). For a quick rehearsal add
 `--fault-min 30 --fault-max 60 --gap-min 60 --gap-max 120`.
 
+## Options worth knowing
+- Injector `--targets report-api` breaks only that app (default: both, chosen at random).
+  Used to balance the incidents between the two apps.
+- Injector `--faults cpu,memory,latency,crash`: crash is opt-in. Repeating a name
+  (`...,crash,crash`) makes it more likely in the random pick.
+- Set the injector `--total` about 100 s below the recorder `--duration`, so the last
+  incident ends before the recording stops (we used 1100 and 1200).
+- Do not use `rm` with a glob in session commands. Use a new folder name instead.
+
 ## Checks
 - Before a **normal** session make sure no fault is left on: `curl http://127.0.0.1:8001/faults`
   and `curl http://127.0.0.1:8002/faults` must show cpu/memory false and latency_ms 0.
@@ -54,3 +63,18 @@ fault started and ended). For a quick rehearsal add
 ## Why Docker for sessions
 CPU and memory metrics (`process_cpu_seconds_total`, `process_resident_memory_bytes`)
 only exist on Linux, so sessions must use the containers, not the Windows virtualenvs.
+
+## Lessons from the first sessions
+- **Use 20-minute sessions, not one long one.** The laptop has 8 GB; a 1-hour run was
+  stopped by Claude Code at about 36 minutes because Windows ran critically low on memory
+  (kept as `normal-partial`). Short sessions lose little if that happens again.
+- **WSL2 memory cap.** `~/.wslconfig` was lowered from `memory=4GB` to `memory=2GB`
+  (backup: `.wslconfig.bak`). After editing it, run `wsl --shutdown` and restart Docker
+  Desktop. Check free RAM first: it should be above about 1 GB.
+- **Docker must be running** before a session. If the containers are down, the recorder
+  still writes rows, but all with `up=0` (one rehearsal was wasted this way).
+- **The load generator must survive a crash.** The first crash session was invalid because
+  the generator died on a dropped connection and no traffic was sent afterwards. This is
+  fixed; always check the generator log for a traceback after a faulty session.
+- **A short gap can appear** if the laptop stalls (`normal-3` has one 52 s gap at
+  18:03:13 UTC). Never treat two rows with a gap between them as 5 s apart.

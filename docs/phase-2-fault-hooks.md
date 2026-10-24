@@ -51,3 +51,41 @@ Written by Claude Code at the student's request, explained afterward.
 
 Rehearsal (2 min, 3 incidents): memory fault raised report-api memory from 52 to about
 102 MB and it returned to 53 MB when switched off, matching the label file.
+
+## Dataset collected (session 4)
+All files are in `ml/data/<session>/` (git-ignored). Each session ran the apps in Docker
+with 2 requests/s of generated traffic and a 5 s scrape.
+
+| Session | Length | Content |
+|---|---|---|
+| `normal-1`, `normal-2` | 20 min each | healthy, clean |
+| `normal-3` | 20 min | healthy, one 52 s gap at 2026-10-24T18:03:13Z |
+| `normal-partial` | about 36 min | healthy, stopped early by memory pressure |
+| `faulty-1` | 20 min | 7 incidents, 6 on notes-api and 1 on report-api (cpu, memory, latency) |
+| `faulty-2` | 20 min | 6 incidents, all on report-api (cpu, memory, latency) |
+| `faulty-3` | 20 min | 6 incidents: 5 crashes and 1 memory fault |
+| `faulty-3-INVALID-generator-died` | | do not use (generator crashed, see below) |
+| `rehearsal`, `normal-rehearsal` | | test runs, not part of the dataset |
+
+Totals: about 96 min of normal data and 19 labeled incidents (cpu 4, memory 8, latency 3,
+crash 5). The set is small and uneven, so results must be reported with that caveat.
+
+### What the data shows
+- Each fault has its own fingerprint: cpu fault takes CPU from about 1% to 50% (the
+  container limit is half a core) with memory flat; memory fault grows memory by 30 to
+  90 MB with CPU flat; latency fault raises latency to the chosen delay with CPU and memory
+  flat.
+- report-api latency is naturally noisy (17 to 41 ms) because report sizes are random.
+- A crash is over in a few seconds, shorter than the scrape interval, so it often leaves
+  0 or 1 `up=0` row. The reliable signal is a counter reset (CPU and request totals
+  drop). Label windows for crashes are longer than the real downtime.
+
+### Problems found and fixed
+- report-api kept every report forever, which made normal data drift; now capped at 100.
+- The load generator crashed when an app crashed; now it counts the error and continues.
+- The 1-hour run was killed for low memory; sessions are now 20 minutes (see
+  `docs/running-sessions.md`).
+
+### Not done yet (next)
+Data preparation: turn the raw counters into per-5-second rates, drop or split at gaps,
+mark counter resets, join with the labels, and split by time (never randomly).
