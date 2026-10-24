@@ -9,6 +9,7 @@ Usage:
 """
 
 import argparse
+import http.client
 import json
 import random
 import time
@@ -31,8 +32,9 @@ def call(method: str, url: str, body: dict | None = None):
             return response.status, (json.loads(raw) if raw else None)
     except urllib.error.HTTPError as error:
         return error.code, None
-    except (urllib.error.URLError, TimeoutError):
-        return 0, None  # app unreachable (for example during a crash fault)
+    except (urllib.error.URLError, http.client.HTTPException, OSError):
+        # app unreachable or cut the connection (for example during a crash fault)
+        return 0, None
 
 
 class User:
