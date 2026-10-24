@@ -15,9 +15,10 @@ async def record_metrics(request: Request, call_next):
     response = await call_next(request)
     duration = time.perf_counter() - start
 
-    # Use the route template (/notes/{note_id}), not the raw URL, so labels stay few.
+    # Use the route template, and one fixed label for unknown paths,
+    # so the number of label values stays small.
     route = request.scope.get("route")
-    path = route.path if route else request.url.path
+    path = route.path if route else "unmatched"
 
     REQUEST_COUNT.labels(request.method, path, response.status_code).inc()
     REQUEST_LATENCY.labels(request.method, path).observe(duration)
