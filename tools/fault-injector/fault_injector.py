@@ -90,6 +90,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Break the target apps on a schedule and record the labels")
     parser.add_argument("--labels", default="labels.csv", help="CSV file the incidents are appended to")
     parser.add_argument("--faults", default="cpu,memory,latency", help="comma list from: cpu,memory,latency,crash")
+    parser.add_argument("--targets", default=",".join(APPS), help="comma list of apps to break (default: all)")
     parser.add_argument("--total", type=float, default=0, help="seconds to run, 0 = until Ctrl+C")
     parser.add_argument("--fault-min", type=float, default=120, help="shortest incident, seconds")
     parser.add_argument("--fault-max", type=float, default=300, help="longest incident, seconds")
@@ -98,6 +99,10 @@ def main() -> None:
     args = parser.parse_args()
 
     faults = [name.strip() for name in args.faults.split(",") if name.strip()]
+    targets = [name.strip() for name in args.targets.split(",") if name.strip()]
+    unknown = [name for name in targets if name not in APPS]
+    if unknown:
+        parser.error(f"unknown target(s): {', '.join(unknown)}; choose from {', '.join(APPS)}")
     start = time.time()
 
     try:
@@ -109,7 +114,7 @@ def main() -> None:
                 break
             run_incident(
                 fault=random.choice(faults),
-                target=random.choice(list(APPS)),
+                target=random.choice(targets),
                 seconds=random.uniform(args.fault_min, args.fault_max),
                 labels=args.labels,
             )
