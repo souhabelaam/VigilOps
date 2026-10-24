@@ -36,3 +36,18 @@ curl -X POST http://127.0.0.1:8002/faults/cpu
 curl -X DELETE http://127.0.0.1:8002/faults/cpu
 ```
 Tests: `pytest` inside each service folder.
+
+## Tools built after the hooks
+Written by Claude Code at the student's request, explained afterward.
+- `tools/load-generator/` sends steady fake traffic (the "normal" activity).
+- `tools/fault-injector/` presses the fault buttons on a schedule and writes a label CSV
+  (fault, target, start_utc, end_utc, detail). Labels are the answer sheet used to grade
+  the detector; the model itself trains on healthy data only.
+- `tools/metrics-recorder/` saves each app's `/metrics` to a CSV (raw running totals;
+  rates are computed later by subtracting consecutive rows).
+- `docker-compose.yml` starts both apps with CPU/memory limits and `FAULTS_ENABLED=true`.
+- `report-api` keeps only the last 100 reports, so normal data does not drift.
+- How to run sessions: `docs/running-sessions.md`.
+
+Rehearsal (2 min, 3 incidents): memory fault raised report-api memory from 52 to about
+102 MB and it returned to 53 MB when switched off, matching the label file.
