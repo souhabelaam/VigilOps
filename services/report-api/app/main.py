@@ -1,9 +1,14 @@
+import asyncio
 import time
 
 from fastapi import FastAPI, Request
 
+from app.api import faults as faults_api
 from app.api import health, metrics, reports, ui
+from app.core.faults import faults
 from app.core.metrics import REQUEST_COUNT, REQUEST_LATENCY
+
+EXEMPT_PATHS = ("/faults", "/metrics", "/health")
 
 app = FastAPI(title="report-api")
 
@@ -12,6 +17,9 @@ app = FastAPI(title="report-api")
 async def record_metrics(request: Request, call_next):
     """Runs around every request: time it, then update the Prometheus metrics."""
     start = time.perf_counter()
+    # Slow-response fault: delay business requests, never the tooling endpoints.
+    if faults.latency_seconds and not request.url.path.startswith(EXEMPT_PATHS):
+        await asyncio.sleep(faults.latency_seconds)
     response = await call_next(request)
     duration = time.perf_counter() - start
 
@@ -27,5 +35,6 @@ async def record_metrics(request: Request, call_next):
 
 app.include_router(health.router)
 app.include_router(metrics.router)
+app.include_router(faults_api.router)
 app.include_router(reports.router)
 app.include_router(ui.router)
