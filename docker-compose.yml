@@ -19,6 +19,20 @@ services:
     mem_limit: 256m
     cpus: 0.5
 
+  collector:
+    build: ./services/collector
+    environment:
+      RABBITMQ_HOST: rabbitmq      # inside Compose, a service is reached by its name
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+    depends_on:
+      - rabbitmq
+      - notes-api
+      - report-api
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.25
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine   # "management" adds a web page to look inside the queues
     ports:
