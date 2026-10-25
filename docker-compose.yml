@@ -18,3 +18,15 @@ services:
     restart: unless-stopped
     mem_limit: 256m
     cpus: 0.5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine   # "management" adds a web page to look inside the queues
+    ports:
+      - "5672:5672"     # the port services use to send and receive messages
+      - "15672:15672"   # the management web page
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}   # read from the git-ignored .env file
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    restart: unless-stopped
+    mem_limit: 384m
+    cpus: 0.5
