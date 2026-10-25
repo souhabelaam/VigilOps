@@ -30,3 +30,21 @@ services:
     restart: unless-stopped
     mem_limit: 384m
     cpus: 0.5
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}   # from the git-ignored .env file
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: vigilops
+    volumes:
+      - pgdata:/var/lib/postgresql/data                       # keeps the data when the container is removed
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro  # creates the table on first start
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+
+volumes:
+  pgdata:
