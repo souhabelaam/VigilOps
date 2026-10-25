@@ -7,3 +7,4 @@ ml/data/
 *.tfstate
 *.tfstate.backup
 .terraform/
+ml/mlflow.db
