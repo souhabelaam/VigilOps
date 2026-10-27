@@ -48,6 +48,48 @@ Two later additions to the search:
 - 6-9 false alerts per hour is still high. Phase 5 should combine the model with debouncing (several alarms in a row, cool-down) and the crash rule.
 - Detection delay is measured from the first anomalous window and slightly understates the true delay.
 
+## Stability across seeds (`ml/seed_spread.py`)
+Each reported score already averages an ensemble of 5 networks. To see how much the score depends on the random start, the whole run (train 5 networks, pick the threshold on normal-3, grade on faulty-2..5) was repeated 5 times with different seeds. Settings unchanged, nothing exported.
+
+| app | F1 mean ± std | F1 range | precision | recall | false alerts/h |
+|---|---|---|---|---|---|
+| notes-api | 0.957 ± 0.009 | 0.942 to 0.963 | 0.965 ± 0.020 | 0.950 | 4.5 ± 0.7 |
+| report-api | 0.870 ± 0.029 | 0.831 to 0.901 | 0.781 ± 0.046 | 0.985 | 17.4 ± 0.8 |
+
+notes-api is stable. report-api varies more, and all of it comes from precision (the threshold from a 20-minute healthy session moves a little between ensembles). Every repeat finds every incident. The exported 0.963 and 0.865 are typical draws. The repeats use the same sessions, so they do not remove the tuning bias, which the next section checks.
+
+## Held-out check (`ml/holdout.py`, session faulty-7)
+`faulty-7` was recorded after the models were frozen (20 min, both apps, 9 incidents: cpu, memory x4, latency x2, crash x2). The exported `.pt` files were loaded and scored once: no training, no tuning, threshold from the file. The scaler rebuilt from the training sessions was checked equal to the saved one.
+
+| app | model | precision | recall | F1 | detected | mean delay | false alerts/h |
+|---|---|---|---|---|---|---|---|
+| notes-api | IsolationForest | 1.000 | 0.222 | 0.364 | 1/3 | 20.0 s | 0.0 |
+| notes-api | **autoencoder** | 0.958 | 0.852 | **0.902** | 3/3 | 6.7 s | 10.6 |
+| report-api | IsolationForest | 1.000 | 0.265 | 0.419 | 2/4 | 35.0 s | 0.0 |
+| report-api | **autoencoder** | 0.977 | 0.977 | **0.977** | 4/4 | 1.2 s | 7.1 |
+
+The crash rule caught 2 of 2 crashes (both on notes-api; report-api had none).
+
+Reading: the autoencoder again beats the baseline clearly on unseen data. report-api came out higher than on faulty-2..5 (0.977 vs 0.870 ± 0.029), so the worry that its earlier score was inflated by tuning did not show up here. notes-api came out lower than its seed range (0.902 vs 0.957 ± 0.009), with more false alerts and lower recall. Honest range for new data: about 0.90 to 0.96 (notes-api) and 0.87 to 0.98 (report-api). Limits: one session, only 3 (notes-api) and 4 (report-api) non-crash incidents, 167 and 216 windows, and false alerts per hour computed from about 12 healthy minutes, so each number is rough. The incidents are injected, not real.
+
+## Debounce rule, tested offline (`ml/debounce.py`)
+Rule: raise an alarm only after k windows in a row are above the saved threshold (5 s per window; a run never spans a gap). The models and thresholds are unchanged. k is chosen on the tuning sessions (faulty-1+6) only, with a rule fixed before looking: the smallest k whose false alerts/h is at most half of k=1's with every incident still detected, otherwise k=1.
+
+| app | part | k=1 F1 / false per h / delay | chosen k | F1 / false per h / delay |
+|---|---|---|---|---|
+| notes-api | tune (faulty-1+6) | 0.936 / 20.5 / 1.7 s | 2 | 0.952 / 8.8 / 3.3 s |
+| notes-api | final (faulty-2..5) | 0.963 / 4.0 / 5.0 s | 2 | 0.951 / 2.7 / 7.9 s |
+| notes-api | held-out (faulty-7) | 0.902 / 10.6 / 6.7 s | 2 | 0.875 / 0.0 / 10.0 s |
+| report-api | tune (faulty-1+6) | 0.993 / 3.8 / 0.0 s | 1 | unchanged |
+| report-api | final (faulty-2..5) | 0.865 / 18.3 / 0.8 s | 1 | unchanged |
+| report-api | held-out (faulty-7) | 0.977 / 7.1 / 1.2 s | 1 | unchanged |
+
+Reading:
+- notes-api: k=2 removes most false alerts (held-out 10.6 to 0.0 per hour, final 4.0 to 2.7) and still finds every incident. The price is a few seconds of delay and a little recall (the window-level F1 drops by 0.01 to 0.03).
+- report-api: the tuning sessions have only 3.8 false alerts per hour and k does not reduce them, so the fixed rule keeps k=1. This is a real disagreement between sessions: on faulty-2..5, k=2 would cut false alerts from 18.3 to 3.1 per hour and raise F1 to 0.925, but on faulty-7 k does not change the 7.1 false alerts per hour (they are long streaks, not short blips) and F1 only drops. I did not switch k after seeing faulty-2..5, because that would be tuning on the final test. The detection service keeps k per app in its settings; a better value needs more data.
+- False alerts per hour on faulty-7 come from about 12 healthy minutes: 0.0 means no false streak in that time, 10.6 means about two.
+- A cool-down (one notification per incident, not one per streak) is a notification rule and belongs to Phase 5.
+
 ## Exported model
 `python ml/autoencoder.py` writes `ml/models/notes-api.pt` and `ml/models/report-api.pt` (about 40 KB each): network weights (5 per app), scaler (mean/std), window length, log-latency flag, summary-features flag, memory-change flag, alarm threshold. The Phase 5 detection service loads them and must rebuild the inputs the same way (see `ml/windows.py`: fill empty cells, optional `log1p` on latency, scale, optional summary features).
 
@@ -56,5 +98,8 @@ Two later additions to the search:
 ml\.venv\Scripts\python.exe -I ml\prepare_data.py   # rates + labels
 ml\.venv\Scripts\python.exe ml\autoencoder.py       # train, grade, export, log to MLflow
 ml\.venv\Scripts\python.exe ml\tune.py              # tuning experiment
+ml\.venv\Scripts\python.exe ml\seed_spread.py       # score stability over 5 repeats (no export)
+ml\.venv\Scripts\python.exe ml\holdout.py faulty-7  # frozen models on a held-out session
+ml\.venv\Scripts\python.exe ml\debounce.py          # k alarms in a row, chosen on tuning sessions
 ml\.venv\Scripts\mlflow.exe ui --backend-store-uri sqlite:///ml/mlflow.db
 ```
