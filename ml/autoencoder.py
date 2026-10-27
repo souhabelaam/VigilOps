@@ -68,13 +68,13 @@ def rebuild_error(models, x):
         return sum(((m(x) - x) ** 2).mean(dim=1).numpy() for m in models) / len(models)
 
 
-def run(app, export=True):
+def run(app, export=True, seed0=0):
     cfg = SETTINGS[app]
     windows.WINDOW, windows.LOG_LATENCY = cfg["window"], cfg["log_latency"]
     windows.STATS, windows.MEM_DELTA = cfg["stats"], cfg["mem_delta"]
     data = windows.build(app, PARTS)
     x_train = tensor(data["train"]["x"])
-    models = [train_one(x_train, cfg["bottleneck"], s) for s in range(SEEDS)]
+    models = [train_one(x_train, cfg["bottleneck"], s) for s in range(seed0, seed0 + SEEDS)]
 
     threshold = pick_threshold(rebuild_error(models, data["threshold"]["x"]), cfg["quantile"])
     f = data["final"]
