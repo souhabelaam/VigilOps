@@ -1,9 +1,11 @@
-"""Ingestion: read raw samples from the queue, compute rates, store them in PostgreSQL."""
+"""Ingestion: read raw samples from the queue, compute rates, store them in PostgreSQL
+and publish them to the rates queue for anomaly detection."""
 import logging
 import signal
 
 from app.core import config
 from app.repositories.database import RateRepository
+from app.repositories.publisher import QueuePublisher
 from app.repositories.queue import QueueConsumer
 from app.schemas.sample import Sample
 from app.services.rates import RateCalculator
@@ -28,17 +30,22 @@ def main() -> None:
     repository = RateRepository(conninfo)
     repository.connect()
     calculator = RateCalculator(config.MAX_GAP_S)
+    publisher = QueuePublisher(config.RABBITMQ_HOST, config.RABBITMQ_PORT,
+                               config.RABBITMQ_USER, config.RABBITMQ_PASS, config.RATES_QUEUE)
+    publisher.connect()
 
     def handle(message: dict) -> None:
         rate = calculator.process(Sample.from_message(message))
         if rate is None:
             return
         repository.save(rate)
+        publisher.publish(rate.to_message())
         log.info("%s cpu=%s%% req/s=%s reset=%s", rate.app, rate.cpu_pct, rate.req_per_s, rate.reset)
 
     consumer = QueueConsumer(config.RABBITMQ_HOST, config.RABBITMQ_PORT,
                              config.RABBITMQ_USER, config.RABBITMQ_PASS, config.QUEUE_NAME)
     consumer.consume(handle, lambda: running)
+    publisher.close()
     log.info("ingestion stopped")
 
 

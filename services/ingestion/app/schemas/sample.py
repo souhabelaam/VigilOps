@@ -1,5 +1,5 @@
 """The two shapes ingestion handles: a raw Sample from the queue, a Rate for the database."""
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 
 
@@ -39,3 +39,9 @@ class Rate:
     avg_latency_ms: float | None
     memory_mb: float
     reset: bool
+
+    def to_message(self) -> dict:
+        """The JSON-ready dict sent to the rates queue (timestamp as text)."""
+        message = asdict(self)
+        message["ts"] = self.ts.isoformat()
+        return message

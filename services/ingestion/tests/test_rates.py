@@ -56,3 +56,12 @@ def test_apps_do_not_mix():
     calc = RateCalculator(6)
     calc.process(sample(0, cpu=100, app="notes-api"))
     assert calc.process(sample(5, cpu=0, app="report-api")) is None   # first sample of report-api
+
+
+def test_rate_message_is_json_ready():
+    import json
+    calc = RateCalculator(6)
+    calc.process(sample(0, cpu=100.0, req=400, lat_sum=1.0, lat_cnt=400))
+    message = calc.process(sample(5, cpu=100.2, req=430, lat_sum=1.3, lat_cnt=430)).to_message()
+    assert json.loads(json.dumps(message))["ts"] == "2026-10-25T10:00:05+00:00"
+    assert message["app"] == "notes-api" and message["cpu_pct"] == 4.0 and message["reset"] is False
