@@ -72,3 +72,50 @@ def test_crash_is_announced_even_during_a_model_alarm():
     alerter.handle(event(5))
     alerter.handle(event(10, kind="crash"))
     assert len(notifier.sent) == 2 and "restarted" in notifier.sent[1]
+
+
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+
+def test_incident_is_resolved_after_the_quiet_period():
+    notifier, clock = FakeNotifier(), FakeClock()
+    alerter = Alerter(notifier, 60, clock)
+    alerter.handle(event(0))
+    clock.now = 30
+    assert alerter.check() == []                      # only 30 s of silence
+    clock.now = 61
+    assert len(alerter.check()) == 1 and "[RESOLVED] notes-api" in notifier.sent[-1]
+    assert alerter.check() == []                      # told once, not again
+
+
+def test_events_keep_the_incident_open():
+    notifier, clock = FakeNotifier(), FakeClock()
+    alerter = Alerter(notifier, 60, clock)
+    for i in range(20):
+        clock.now = 5 * i
+        alerter.handle(event(5 * i))
+        assert alerter.check() == []
+    assert len(notifier.sent) == 1                    # one alert, no resolved
+
+
+def test_after_resolved_the_next_fault_alerts_again():
+    notifier, clock = FakeNotifier(), FakeClock()
+    alerter = Alerter(notifier, 60, clock)
+    alerter.handle(event(0))
+    clock.now = 100
+    alerter.check()
+    alerter.handle(event(100))
+    assert [m.split()[0] for m in notifier.sent] == ["[ALERT]", "[RESOLVED]", "[ALERT]"]
+
+
+def test_a_crash_has_no_resolved_message():
+    notifier, clock = FakeNotifier(), FakeClock()
+    alerter = Alerter(notifier, 60, clock)
+    alerter.handle(event(0, kind="crash"))
+    clock.now = 100
+    assert alerter.check() == [] and len(notifier.sent) == 1

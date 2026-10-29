@@ -25,7 +25,7 @@ def main() -> None:
     alerter = Alerter(ConsoleNotifier(), config.COOLDOWN_S)
     consumer = QueueConsumer(config.RABBITMQ_HOST, config.RABBITMQ_PORT,
                              config.RABBITMQ_USER, config.RABBITMQ_PASS, config.QUEUE_NAME)
-    consumer.consume(alerter.handle, lambda: running)
+    consumer.consume(alerter.handle, lambda: running, on_idle=alerter.check)
     log.info("alerting stopped")
 
 

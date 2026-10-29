@@ -17,8 +17,10 @@ class QueueConsumer:
         )
         self._queue = queue
 
-    def consume(self, handler, should_run) -> None:
+    def consume(self, handler, should_run, on_idle=None) -> None:
         """Call handler(message_dict) for each message until should_run() is False.
+
+        on_idle() is called about once a second while the queue is empty.
 
         A message is acknowledged (removed from the queue) only after the handler
         succeeded, so a crash in the middle means it is delivered again, never lost.
@@ -36,6 +38,8 @@ class QueueConsumer:
                     if not should_run():
                         break
                     if method is None:
+                        if on_idle:
+                            on_idle()
                         continue  # timeout, no message
                     try:
                         handler(json.loads(body))
