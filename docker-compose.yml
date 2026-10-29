@@ -67,6 +67,10 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASS: ${RABBITMQ_PASS}
+      NOTIFIER: ${NOTIFIER:-console}   # "email" turns on email alerts (needs the three lines below in .env)
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_TO: ${MAIL_TO:-}
     depends_on:
       - rabbitmq
     restart: unless-stopped
