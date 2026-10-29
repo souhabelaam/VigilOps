@@ -21,12 +21,13 @@ LR = 1e-3
 HIDDEN = 24
 SEEDS = 5  # the score is the average of 5 networks trained from different seeds
 MODELS = Path(__file__).parent / "models"
-# chosen by tune.py; k (alarms in a row) stayed 1 for both apps
+# chosen by tune.py; k (alarms in a row) stayed 1 for both apps.
+# mem_growth replaced absolute / delta memory after ml/robustness.py (live false alarms)
 SETTINGS = {
     "notes-api": {"window": 24, "bottleneck": 3, "log_latency": True, "stats": True,
-                  "mem_delta": False, "quantile": 0.999},
+                  "mem_delta": False, "mem_growth": True, "quantile": 0.999},
     "report-api": {"window": 24, "bottleneck": 6, "log_latency": False, "stats": True,
-                   "mem_delta": True, "quantile": 0.99},
+                   "mem_delta": False, "mem_growth": True, "quantile": 0.99},
 }
 # final test = sessions the tuning never used
 PARTS = {"train": windows.TRAIN, "threshold": windows.THRESHOLD,
@@ -72,6 +73,7 @@ def run(app, export=True, seed0=0):
     cfg = SETTINGS[app]
     windows.WINDOW, windows.LOG_LATENCY = cfg["window"], cfg["log_latency"]
     windows.STATS, windows.MEM_DELTA = cfg["stats"], cfg["mem_delta"]
+    windows.MEM_GROWTH = cfg["mem_growth"]
     data = windows.build(app, PARTS)
     x_train = tensor(data["train"]["x"])
     models = [train_one(x_train, cfg["bottleneck"], s) for s in range(seed0, seed0 + SEEDS)]
@@ -84,7 +86,8 @@ def run(app, export=True, seed0=0):
     if export:
         MODELS.mkdir(exist_ok=True)
         torch.save({"app": app, "window": cfg["window"], "log_latency": cfg["log_latency"],
-                    "stats": cfg["stats"], "mem_delta": cfg["mem_delta"], "features": windows.FEATURES,
+                    "stats": cfg["stats"], "mem_delta": cfg["mem_delta"],
+                    "mem_growth": cfg["mem_growth"], "features": windows.FEATURES,
                     "n_in": x_train.shape[1], "hidden": HIDDEN, "bottleneck": cfg["bottleneck"],
                     "state_dicts": [m.state_dict() for m in models],
                     "mean": data["mean"].tolist(), "std": data["std"].tolist(),
@@ -95,6 +98,7 @@ def run(app, export=True, seed0=0):
 def run_baseline(app):
     """The baseline graded on the same final sessions, default settings."""
     windows.WINDOW, windows.LOG_LATENCY, windows.STATS, windows.MEM_DELTA = 12, False, False, False
+    windows.MEM_GROWTH = False
     data = windows.build(app, PARTS)
     from sklearn.ensemble import IsolationForest
     flat = lambda x: x.reshape(len(x), -1)

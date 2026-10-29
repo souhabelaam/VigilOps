@@ -16,6 +16,7 @@ APPS = ["notes-api", "report-api"]
 WINDOW = 12      # 12 rows x 5 s = 60 s of history
 LOG_LATENCY = False  # log1p on latency: it is heavy-tailed (rare big spikes)
 MEM_DELTA = False    # memory as change since the window start, not absolute level
+MEM_GROWTH = False   # like MEM_DELTA but a fall counts as 0: only a leak (growth) matters
 STATS = False        # describe each window by mean/std/min/max/trend instead of raw rows
 MAX_GAP_S = 6.0  # same rule as prepare_data.py: never join rows across a gap
 
@@ -95,10 +96,12 @@ def make_windows(session, app):
     if not wins:
         return np.empty((0, WINDOW, len(FEATURES))), np.array([], dtype=int), []
     wins = np.array(wins)
-    if MEM_DELTA:
+    if MEM_DELTA or MEM_GROWTH:
         # memory level differs between runs (container age), only its change matters
         m = FEATURES.index("memory_mb")
         wins[:, :, m] -= wins[:, :1, m]
+        if MEM_GROWTH:
+            wins[:, :, m] = np.maximum(wins[:, :, m], 0)   # memory falling is not a fault
     return wins, np.array(wlabels), wtimes
 
 

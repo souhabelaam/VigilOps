@@ -37,6 +37,7 @@ def load(app):
     ckpt = torch.load(autoencoder.MODELS / f"{app}.pt")
     windows.WINDOW, windows.LOG_LATENCY = ckpt["window"], ckpt["log_latency"]
     windows.STATS, windows.MEM_DELTA = ckpt["stats"], ckpt["mem_delta"]
+    windows.MEM_GROWTH = ckpt.get("mem_growth", False)
     data = windows.build(app, PARTS)
     assert np.allclose(data["mean"], ckpt["mean"]) and np.allclose(data["std"], ckpt["std"])
     models = []

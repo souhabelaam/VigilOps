@@ -12,7 +12,7 @@ import torch
 MODELS = Path(__file__).parent / "models"
 OUT = Path(__file__).parent.parent / "services" / "anomaly-detection" / "models"
 
-KEEP = ["app", "window", "log_latency", "stats", "mem_delta", "features",
+KEEP = ["app", "window", "log_latency", "stats", "mem_delta", "mem_growth", "features",
         "n_in", "hidden", "bottleneck", "mean", "std", "threshold"]
 
 if __name__ == "__main__":
