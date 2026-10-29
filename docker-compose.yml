@@ -61,6 +61,18 @@ services:
     mem_limit: 160m
     cpus: 0.25
 
+  alerting:
+    build: ./services/alerting
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+    mem_limit: 64m
+    cpus: 0.1
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine   # "management" adds a web page to look inside the queues
     ports:
