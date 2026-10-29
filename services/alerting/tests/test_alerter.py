@@ -53,3 +53,12 @@ def test_crash_message_says_restarted():
     notifier = FakeNotifier()
     Alerter(notifier, 120).handle(event(0, kind="crash"))
     assert "restarted" in notifier.sent[0]
+
+
+def test_new_fault_90_seconds_after_the_last_event_is_announced():
+    # live test: a second fault started 91 s after the first one's last event and was never announced
+    notifier = FakeNotifier()
+    alerter = Alerter(notifier, 60)
+    alerter.handle(event(0))
+    alerter.handle(event(91))
+    assert len(notifier.sent) == 2
