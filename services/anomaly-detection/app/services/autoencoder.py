@@ -32,6 +32,7 @@ class Ensemble:
         self.log_latency = data["log_latency"]
         self.stats = data["stats"]
         self.mem_delta = data["mem_delta"]
+        self.mem_growth = data.get("mem_growth", False)
         self.features = data["features"]
         self.mean = np.array(data["mean"])
         self.std = np.array(data["std"])

@@ -9,7 +9,7 @@ T0 = datetime(2026, 10, 25, 10, 0, 0, tzinfo=timezone.utc)
 
 class StubModel:
     """Window of 2 rows; the score is simply the cpu of the last row."""
-    window, log_latency, stats, mem_delta = 2, False, False, False
+    window, log_latency, stats, mem_delta, mem_growth = 2, False, False, False, False
     mean, std, threshold = np.zeros(4), np.ones(4), 10.0
 
     def score(self, x):

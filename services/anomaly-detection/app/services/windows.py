@@ -55,8 +55,10 @@ class WindowBuilder:
 
     def _prepare(self, window: np.ndarray) -> np.ndarray:
         model = self._model
-        if model.mem_delta:
+        if model.mem_delta or model.mem_growth:
             window[:, MEMORY] -= window[0, MEMORY]
+            if model.mem_growth:
+                window[:, MEMORY] = np.maximum(window[:, MEMORY], 0)   # memory falling is not a fault
         scaled = (window - model.mean) / model.std
         if not model.stats:
             return scaled.reshape(-1)
