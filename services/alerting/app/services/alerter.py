@@ -8,19 +8,22 @@ class Alerter:
     The detector sends an event every 5 s while an app looks broken. Without this,
     one 2-minute fault would send 24 messages. An incident ends when no event
     arrives for cooldown_s; the next event then starts a new incident.
+    Crashes and model alarms count separately: a model alarm that never stops
+    (a false alarm stuck on) must not hide a real crash.
     Time comes from the event itself (not the clock), so tests need no waiting.
     """
 
     def __init__(self, notifier, cooldown_s: float):
         self._notifier = notifier
         self._cooldown_s = cooldown_s
-        self._last_event: dict[str, datetime] = {}   # app -> time of its latest event
+        self._last_event: dict[tuple[str, str], datetime] = {}   # (app, kind) -> time of its latest event
 
     def handle(self, event: dict) -> bool:
         """Return True if this event started a new incident (and a message was sent)."""
         app, ts = event["app"], datetime.fromisoformat(event["ts"])
-        last = self._last_event.get(app)
-        self._last_event[app] = ts
+        key = (app, event["kind"])
+        last = self._last_event.get(key)
+        self._last_event[key] = ts
         if last is not None and (ts - last).total_seconds() <= self._cooldown_s:
             return False   # same incident, already told
         self._notifier.send(self._message(event))

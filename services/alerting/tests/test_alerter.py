@@ -62,3 +62,13 @@ def test_new_fault_90_seconds_after_the_last_event_is_announced():
     alerter.handle(event(0))
     alerter.handle(event(91))
     assert len(notifier.sent) == 2
+
+
+def test_crash_is_announced_even_during_a_model_alarm():
+    # live test: notes-api had a stuck false alarm, and the real crash was never announced
+    notifier = FakeNotifier()
+    alerter = Alerter(notifier, 60)
+    alerter.handle(event(0))
+    alerter.handle(event(5))
+    alerter.handle(event(10, kind="crash"))
+    assert len(notifier.sent) == 2 and "restarted" in notifier.sent[1]
