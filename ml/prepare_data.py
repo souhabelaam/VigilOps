@@ -12,6 +12,7 @@ DATA = Path(__file__).parent / "data"
 OUT = DATA / "prepared"
 SESSIONS = [
     "normal-1", "normal-2", "normal-3", "normal-4", "normal-partial",
+    "normal-5", "normal-6", "normal-7",  # traffic on/off cycles; normal-6 has a 313 s gap (laptop slept)
     "faulty-1", "faulty-2", "faulty-3", "faulty-4", "faulty-5", "faulty-6",
     "faulty-7",  # held out: recorded after the models were frozen, scored once
 ]
