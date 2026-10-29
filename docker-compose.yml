@@ -49,6 +49,18 @@ services:
     mem_limit: 128m
     cpus: 0.25
 
+  anomaly-detection:
+    build: ./services/anomaly-detection
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+    mem_limit: 160m
+    cpus: 0.25
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine   # "management" adds a web page to look inside the queues
     ports:
