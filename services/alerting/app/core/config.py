@@ -10,6 +10,9 @@ QUEUE_NAME = os.getenv("QUEUE_NAME", "anomalies")
 # an incident is over when an app sends no anomaly event for this long
 COOLDOWN_S = float(os.getenv("COOLDOWN_S", "60"))
 
+# host ports of the apps, only used to print a /metrics link in the messages
+APP_PORTS = {"notes-api": 8001, "report-api": 8002}
+
 # where alerts go: "console" or "email" (email also prints to the console)
 NOTIFIER = os.getenv("NOTIFIER", "console")
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")

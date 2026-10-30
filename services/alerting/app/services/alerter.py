@@ -2,6 +2,8 @@
 import time
 from datetime import datetime
 
+from app.services import templates
+
 
 class Alerter:
     """While an app keeps sending events it is the same incident; stay quiet.
@@ -34,11 +36,11 @@ class Alerter:
         self._last_arrival[key] = self._clock()
         if last is not None and (ts - last).total_seconds() <= self._cooldown_s:
             return False   # same incident, already told
-        self._notifier.send(self._message(event))
+        self._notifier.send(*templates.alert(event))
         return True
 
     def check(self) -> list[str]:
-        """Call regularly. Close incidents that were silent for cooldown_s; return the messages sent."""
+        """Call regularly. Close incidents that were silent for cooldown_s; return the subjects sent."""
         now, sent = self._clock(), []
         for key, arrived in list(self._last_arrival.items()):
             if now - arrived <= self._cooldown_s:
@@ -46,15 +48,7 @@ class Alerter:
             del self._last_arrival[key], self._last_event[key]   # the next event is a NEW incident
             app, kind = key
             if kind == "model":   # a crash is a single moment, there is nothing to resolve
-                message = f"[RESOLVED] {app} looks normal again (no anomaly for {self._cooldown_s:.0f} s)"
-                self._notifier.send(message)
-                sent.append(message)
+                subject, body = templates.resolved(app)
+                self._notifier.send(subject, body)
+                sent.append(subject)
         return sent
-
-    @staticmethod
-    def _message(event: dict) -> str:
-        if event["kind"] == "crash":
-            what = "restarted (crash detected)"
-        else:
-            what = f"behaves abnormally (score {event['score']} above threshold {event['threshold']})"
-        return f"[ALERT] {event['app']} {what} at {event['ts']}"

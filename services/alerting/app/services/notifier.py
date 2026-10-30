@@ -1,4 +1,4 @@
-"""Where a notification goes. Every notifier has one method: send(message)."""
+"""Where a notification goes. Every notifier has one method: send(subject, body)."""
 import logging
 import smtplib
 from email.message import EmailMessage
@@ -7,8 +7,8 @@ log = logging.getLogger("alerting")
 
 
 class ConsoleNotifier:
-    def send(self, message: str) -> None:
-        log.warning(message)   # visible with: docker compose logs alerting
+    def send(self, subject: str, body: str) -> None:
+        log.warning("%s\n%s", subject, body)   # visible with: docker compose logs alerting
 
 
 class EmailNotifier:
@@ -25,11 +25,11 @@ class EmailNotifier:
         self._sender, self._recipient = sender, recipient
         self._smtp_class = smtp_class   # replaced by a fake in the tests
 
-    def send(self, message: str) -> None:
+    def send(self, subject: str, body: str) -> None:
         mail = EmailMessage()
         mail["From"], mail["To"] = self._sender, self._recipient
-        mail["Subject"] = "[VigilOps] " + message.split(" at ")[0][:120]   # "[ALERT] notes-api behaves ..."
-        mail.set_content(message)
+        mail["Subject"] = "[VigilOps] " + subject
+        mail.set_content(body)
         try:
             with self._smtp_class(self._host, self._port, timeout=self._timeout) as server:
                 server.starttls()
@@ -47,6 +47,6 @@ class MultiNotifier:
     def __init__(self, *notifiers):
         self._notifiers = notifiers
 
-    def send(self, message: str) -> None:
+    def send(self, subject: str, body: str) -> None:
         for notifier in self._notifiers:
-            notifier.send(message)
+            notifier.send(subject, body)
