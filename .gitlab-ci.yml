@@ -35,3 +35,14 @@ semgrep:
   image: semgrep/semgrep:1.99.0
   script:
     - semgrep scan --config p/python --metrics=off --error .
+
+# Dependency scan: compares the libraries in every requirements.txt with the public CVE database.
+# HIGH is only shown; CRITICAL fails the job. --ignore-unfixed hides issues nobody can fix yet.
+trivy-deps:
+  stage: security
+  image:
+    name: aquasec/trivy:0.57.1
+    entrypoint: [""]
+  script:
+    - trivy fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 --no-progress --skip-dirs ml/data .
+    - trivy fs --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress --skip-dirs ml/data .

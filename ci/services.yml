@@ -3,6 +3,7 @@ stages:
   - lint
   - test
   - build
+  - scan
 
 lint:
   stage: lint
@@ -98,3 +99,25 @@ build-alerting:
   extends: .build
   variables:
     SERVICE: alerting
+
+# Image scan: the operating system inside each pushed image can have known holes too.
+# One job for the 6 images, so the vulnerability database is downloaded once.
+# HIGH is only shown; CRITICAL fails the job (after all 6 were scanned).
+trivy-images:
+  stage: scan
+  image:
+    name: aquasec/trivy:0.57.1
+    entrypoint: [""]
+  variables:
+    TRIVY_USERNAME: $CI_REGISTRY_USER        # the images are in our private registry
+    TRIVY_PASSWORD: $CI_REGISTRY_PASSWORD
+    TRIVY_NO_PROGRESS: "true"
+  script:
+    - |
+      for svc in notes-api report-api collector ingestion anomaly-detection alerting; do
+        img=$CI_REGISTRY_IMAGE/$svc:$CI_COMMIT_SHORT_SHA
+        echo "== $img"
+        trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 $img
+        trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 $img || failed=1
+      done
+      exit ${failed:-0}
