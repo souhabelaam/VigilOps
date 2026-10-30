@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: vigilops
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30001   # Grafana
+        hostPort: 3000
+      - containerPort: 30002   # notes-api
+        hostPort: 8001
+      - containerPort: 30003   # report-api
+        hostPort: 8002
