@@ -1,0 +1,4 @@
+# Linter settings, used by the pipeline and by anyone running `ruff check .`
+extend-exclude = [".venv", "__pycache__"]
+line-length = 120
+target-version = "py312"

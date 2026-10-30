@@ -1,0 +1,15 @@
+# Parent pipeline: it only decides which child pipeline to start.
+# A child starts only when files of its own area changed.
+stages:
+  - pipelines
+
+services:
+  stage: pipelines
+  trigger:
+    include: ci/services.yml
+    strategy: depend        # the parent is green only if the child is green
+  rules:
+    - changes:
+        - services/**/*
+        - ci/services.yml
+        - ruff.toml

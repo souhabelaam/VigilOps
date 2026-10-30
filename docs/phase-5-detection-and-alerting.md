@@ -62,7 +62,7 @@ first and the windows need about 2.5 min to fill).
 | end of a fault | `[RESOLVED]` about 3 min after the fault ends |
 | held-out faulty-7 (offline, same models) | notes-api F1 0.982, 10.6 false alarms/h; report-api F1 0.977, 7.1 false alarms/h |
 
-Tests: ingestion 8, anomaly-detection 6, alerting 21.
+Tests: ingestion 8, anomaly-detection 9, alerting 21.
 
 ## Bugs found live and fixed
 1. A cool-down of 120 s hid a second fault that started 91 s after the first. Now 60 s.

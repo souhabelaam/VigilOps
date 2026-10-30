@@ -1,0 +1,51 @@
+# Child pipeline: the 6 services in services/. Same steps for each, written once.
+stages:
+  - lint
+  - test
+
+lint:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    - pip install --quiet ruff==0.14.0
+    - ruff check services
+
+# A job whose name starts with a dot never runs. It is a template: other jobs copy it with `extends`.
+.test:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - cd services/$SERVICE
+    - pip install --quiet -r requirements-dev.txt
+  script:
+    - python -m pytest -q
+
+test-notes-api:
+  extends: .test
+  variables:
+    SERVICE: notes-api
+
+test-report-api:
+  extends: .test
+  variables:
+    SERVICE: report-api
+
+test-collector:
+  extends: .test
+  variables:
+    SERVICE: collector
+
+test-ingestion:
+  extends: .test
+  variables:
+    SERVICE: ingestion
+
+test-anomaly-detection:
+  extends: .test
+  variables:
+    SERVICE: anomaly-detection
+
+test-alerting:
+  extends: .test
+  variables:
+    SERVICE: alerting
