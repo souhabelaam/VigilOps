@@ -17,7 +17,10 @@ def run(app):
     data = windows.build(app)
     model = IsolationForest(n_estimators=100, random_state=0)
     model.fit(flat(data["train"]["x"]))
-    score = lambda part: -model.score_samples(flat(data[part]["x"]))  # higher = odder
+
+    def score(part):   # higher = odder
+        return -model.score_samples(flat(data[part]["x"]))
+
     threshold = pick_threshold(score("threshold"))
     t = data["test"]
     return evaluate(score("test"), t["y"], t["t"], t["session"], threshold)

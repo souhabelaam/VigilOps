@@ -16,6 +16,18 @@ services-pipeline:     # not just "services": that is a reserved GitLab CI word
         - ci/services.yml
         - ruff.toml
 
+ml-pipeline:
+  stage: pipelines
+  trigger:
+    include: ci/ml.yml
+    strategy: depend
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - ml/**/*
+        - ci/ml.yml
+        - ruff.toml
+
 # Secrets scan: runs on EVERY push, whatever changed, because a secret can land anywhere.
 # It reads the whole git history, so a password committed once and deleted later is still found.
 gitleaks:

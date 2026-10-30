@@ -1,0 +1,11 @@
+# Child pipeline: the machine learning code in ml/. Separate from the services: it has its own
+# dependencies (numpy, scikit-learn, torch, mlflow) and its own checks.
+stages:
+  - lint
+
+lint-ml:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    - pip install --quiet ruff==0.14.0
+    - ruff check ml

@@ -53,7 +53,10 @@ def grade(sc, data, part, k, q):
 def baseline(app):
     windows.WINDOW = 12
     data = windows.build(app, PARTS)
-    flat = lambda x: x.reshape(len(x), -1)
+
+    def flat(x):
+        return x.reshape(len(x), -1)
+
     m = IsolationForest(n_estimators=100, random_state=0).fit(flat(data["train"]["x"]))
     sc = {p: -m.score_samples(flat(data[p]["x"])) for p in ["threshold", "final"]}
     thr = pick_threshold(sc["threshold"])

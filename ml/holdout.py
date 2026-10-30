@@ -46,7 +46,10 @@ def score_baseline(app):
 
 def crash_rule(app):
     """Did a counter reset or an up=0 row fall inside each crash label of this app?"""
-    t = lambda s: datetime.fromisoformat(s)
+
+    def t(s):
+        return datetime.fromisoformat(s)
+
     with open(windows.PREPARED / f"{SESSION}.csv", newline="") as f:
         resets = [t(r["timestamp_utc"]) for r in csv.DictReader(f)
                   if r["app"] == app and r["reset"] == "1"]

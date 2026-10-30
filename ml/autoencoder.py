@@ -101,11 +101,10 @@ def run_baseline(app):
     windows.MEM_GROWTH = False
     data = windows.build(app, PARTS)
     from sklearn.ensemble import IsolationForest
-    flat = lambda x: x.reshape(len(x), -1)
-    m = IsolationForest(n_estimators=100, random_state=0).fit(flat(data["train"]["x"]))
-    thr = pick_threshold(-m.score_samples(flat(data["threshold"]["x"])))
+    m = IsolationForest(n_estimators=100, random_state=0).fit(baseline.flat(data["train"]["x"]))
+    thr = pick_threshold(-m.score_samples(baseline.flat(data["threshold"]["x"])))
     f = data["final"]
-    return evaluate(-m.score_samples(flat(f["x"])), f["y"], f["t"], f["session"], thr)
+    return evaluate(-m.score_samples(baseline.flat(f["x"])), f["y"], f["t"], f["session"], thr)
 
 
 if __name__ == "__main__":
