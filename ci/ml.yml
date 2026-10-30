@@ -2,6 +2,7 @@
 # dependencies (numpy, scikit-learn, torch, mlflow) and its own checks.
 stages:
   - lint
+  - test
 
 lint-ml:
   stage: lint
@@ -9,3 +10,31 @@ lint-ml:
   script:
     - pip install --quiet ruff==0.14.0
     - ruff check ml
+
+# Quick tests: the rules that build the model input and grade a detector (numpy only, seconds).
+# They write tiny fake tables in a temporary folder, so they need none of our recorded data.
+test-ml:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install --quiet numpy==2.5.4 pytest==9.1.1
+    - cd ml
+    - python -m pytest tests --ignore=tests/test_parity.py -q
+
+# Parity test: the numpy service must score exactly like the torch models it was exported from.
+# It needs torch, so it is its own job. The CPU build is a few hundred MB instead of several GB.
+test-parity:
+  stage: test
+  image: python:3.12-slim
+  variables:
+    PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip     # lets the cache below keep the downloads
+    MLFLOW_DISABLE_AGENT_HINT: "1"
+  cache:
+    key: ml-pip
+    paths:
+      - .cache/pip
+  script:
+    - pip install --quiet torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+    - pip install --quiet -r ml/requirements.txt pytest==9.1.1
+    - cd ml
+    - python -m pytest tests/test_parity.py -q
