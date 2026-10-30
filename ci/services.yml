@@ -2,6 +2,7 @@
 stages:
   - lint
   - test
+  - build
 
 lint:
   stage: lint
@@ -47,5 +48,49 @@ test-anomaly-detection:
 
 test-alerting:
   extends: .test
+  variables:
+    SERVICE: alerting
+
+# Build one image per service, to prove every Dockerfile builds on a clean machine.
+# A job needs a Docker engine to build images: the `services:` entry starts one next to the job
+# (docker-in-docker), and DOCKER_HOST tells the docker client where to find it.
+.build:
+  stage: build
+  image: docker:27.3.1
+  services:
+    - docker:27.3.1-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""       # no TLS between the job and its helper: they share one private network
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/$SERVICE:$CI_COMMIT_SHORT_SHA services/$SERVICE
+
+build-notes-api:
+  extends: .build
+  variables:
+    SERVICE: notes-api
+
+build-report-api:
+  extends: .build
+  variables:
+    SERVICE: report-api
+
+build-collector:
+  extends: .build
+  variables:
+    SERVICE: collector
+
+build-ingestion:
+  extends: .build
+  variables:
+    SERVICE: ingestion
+
+build-anomaly-detection:
+  extends: .build
+  variables:
+    SERVICE: anomaly-detection
+
+build-alerting:
+  extends: .build
   variables:
     SERVICE: alerting
