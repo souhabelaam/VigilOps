@@ -51,7 +51,8 @@ test-alerting:
   variables:
     SERVICE: alerting
 
-# Build one image per service, to prove every Dockerfile builds on a clean machine.
+# Build one image per service, to prove every Dockerfile builds on a clean machine,
+# then push it to the GitLab registry tagged with the commit.
 # A job needs a Docker engine to build images: the `services:` entry starts one next to the job
 # (docker-in-docker), and DOCKER_HOST tells the docker client where to find it.
 .build:
@@ -64,6 +65,9 @@ test-alerting:
     DOCKER_TLS_CERTDIR: ""       # no TLS between the job and its helper: they share one private network
   script:
     - docker build -t $CI_REGISTRY_IMAGE/$SERVICE:$CI_COMMIT_SHORT_SHA services/$SERVICE
+    # GitLab gives each job a temporary login for the project registry: nothing to store or paste
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - docker push $CI_REGISTRY_IMAGE/$SERVICE:$CI_COMMIT_SHORT_SHA
 
 build-notes-api:
   extends: .build
