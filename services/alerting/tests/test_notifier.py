@@ -35,22 +35,22 @@ def make():
 
 
 def test_email_has_subject_and_body():
-    make().send("[ALERT] notes-api behaves abnormally (score 5.0 above threshold 2.8) at 2026-10-29T12:00:00+00:00")
+    make().send("[ALERT] notes-api behaves abnormally", "App:        notes-api\nDetected:   2026-10-29 12:00:00 UTC")
     mail = FakeSMTP.sent[0]
     assert mail["To"] == "you@example.com" and mail["From"] == "me@example.com"
-    assert mail["Subject"] == "[VigilOps] [ALERT] notes-api behaves abnormally (score 5.0 above threshold 2.8)"
-    assert "2026-10-29T12:00:00" in mail.get_content()
+    assert mail["Subject"] == "[VigilOps] [ALERT] notes-api behaves abnormally"
+    assert "2026-10-29 12:00:00 UTC" in mail.get_content()
 
 
 def test_connection_is_encrypted_before_login():
-    make().send("[ALERT] x at y")
+    make().send("[ALERT] x", "body")
     assert [c[0] for c in FakeSMTP.calls] == ["connect", "starttls", "login"]
 
 
 def test_a_mail_failure_never_stops_alerting(caplog):
     notifier = make()
     FakeSMTP.fail = smtplib.SMTPAuthenticationError(535, b"bad credentials")
-    notifier.send("[ALERT] x at y")          # must not raise
+    notifier.send("[ALERT] x", "body")          # must not raise
     assert FakeSMTP.sent == [] and "email NOT sent" in caplog.text
     assert "app-password" not in caplog.text
 
@@ -59,13 +59,13 @@ def test_unreachable_server_is_survived(caplog):
     class Down(FakeSMTP):
         def __init__(self, *a, **k):
             raise ConnectionRefusedError("no route")
-    EmailNotifier("h", 587, "u", "p", "u", "t", smtp_class=Down).send("[ALERT] x at y")
+    EmailNotifier("h", 587, "u", "p", "u", "t", smtp_class=Down).send("[ALERT] x", "body")
     assert "email NOT sent" in caplog.text
 
 
 def test_multi_notifier_sends_to_all():
     got = []
     class Spy:
-        def send(self, message): got.append(message)
-    MultiNotifier(Spy(), Spy()).send("hello")
-    assert got == ["hello", "hello"]
+        def send(self, subject, body): got.append((subject, body))
+    MultiNotifier(Spy(), Spy()).send("hello", "world")
+    assert got == [("hello", "world")] * 2

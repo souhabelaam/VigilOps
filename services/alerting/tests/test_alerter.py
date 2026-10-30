@@ -9,8 +9,8 @@ class FakeNotifier:
     def __init__(self):
         self.sent = []
 
-    def send(self, message):
-        self.sent.append(message)
+    def send(self, subject, body):
+        self.sent.append(subject)   # the subject is enough here, test_templates checks the bodies
 
 
 def event(second, app="notes-api", kind="model"):
