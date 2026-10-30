@@ -27,3 +27,11 @@ gitleaks:
     GIT_DEPTH: 0            # fetch the full history (GitLab clones only the last 20 commits by default)
   script:
     - gitleaks detect --source . --redact --no-banner --verbose   # --redact: never print the secret itself
+
+# Code scan: matches the Python source against known risky patterns (injection, weak crypto, ...).
+# --error makes the job fail when something is found; --metrics=off sends nothing to semgrep.dev.
+semgrep:
+  stage: security
+  image: semgrep/semgrep:1.99.0
+  script:
+    - semgrep scan --config p/python --metrics=off --error .
