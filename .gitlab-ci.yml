@@ -3,7 +3,7 @@
 stages:
   - pipelines
 
-services:
+services-pipeline:     # not just "services": that is a reserved GitLab CI word
   stage: pipelines
   trigger:
     include: ci/services.yml
