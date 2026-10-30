@@ -10,6 +10,7 @@ services-pipeline:     # not just "services": that is a reserved GitLab CI word
     strategy: depend        # the parent is green only if the child is green
   rules:
     - changes:
+        - .gitlab-ci.yml
         - services/**/*
         - ci/services.yml
         - ruff.toml
