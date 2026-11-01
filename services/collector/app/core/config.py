@@ -21,3 +21,7 @@ RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", "5672"))
 RABBITMQ_USER = os.getenv("RABBITMQ_USER", "")   # no default: the password comes from .env
 RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "")
 QUEUE_NAME = os.getenv("QUEUE_NAME", "raw-metrics")
+
+# health door for Kubernetes probes (liveness /health, readiness /ready)
+HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8080"))
+HEALTH_MAX_SILENCE_S = float(os.getenv("HEALTH_MAX_SILENCE_S", "15"))
