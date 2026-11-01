@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: vigilops
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate            # stop the old pod BEFORE starting the new one: two Postgres must never share one disk
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: vigilops
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: vigilops-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigilops-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA     # a sub-folder, because a fresh volume root is not always empty
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d   # scripts here run once, on the first start only
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:      # "is the database accepting connections?"
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d vigilops"]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d vigilops"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-data
+        - name: init
+          configMap:
+            name: postgres-init

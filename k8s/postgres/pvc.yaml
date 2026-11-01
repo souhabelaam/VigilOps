@@ -1,0 +1,13 @@
+# A request for a disk: "give me 1 GiB that survives pod restarts".
+# The cluster's default storage class (standard) creates the disk when a pod first uses it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: vigilops
+spec:
+  accessModes:
+    - ReadWriteOnce        # one node may write at a time (fine: Postgres runs as 1 pod)
+  resources:
+    requests:
+      storage: 1Gi
