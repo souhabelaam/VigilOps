@@ -1,0 +1,12 @@
+# Disk for RabbitMQ: queues and users survive a pod restart.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq-data
+  namespace: vigilops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
