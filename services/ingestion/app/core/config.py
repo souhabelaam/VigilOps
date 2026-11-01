@@ -16,3 +16,7 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
 
 # two samples further apart than this are never subtracted (same rule as ml/prepare_data.py)
 MAX_GAP_S = float(os.getenv("MAX_GAP_S", "6"))
+
+# health door for Kubernetes probes (liveness /health, readiness /ready)
+HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8080"))
+HEALTH_MAX_SILENCE_S = float(os.getenv("HEALTH_MAX_SILENCE_S", "15"))
