@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notes-api
+  namespace: vigilops
+spec:
+  replicas: 1                       # desired state: keep exactly 1 copy running
+  selector:
+    matchLabels:
+      app: notes-api
+  template:                         # the pod blueprint
+    metadata:
+      labels:
+        app: notes-api              # the Service finds the pod by this label
+    spec:
+      imagePullSecrets:
+        - name: gitlab-registry     # the deploy token created earlier
+      containers:
+        - name: notes-api
+          image: registry.gitlab.com/souhabenelaam/vigilops/notes-api:2581ffdb
+          ports:
+            - containerPort: 8001
+          env:
+            - name: FAULTS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: vigilops-config
+                  key: FAULTS_ENABLED
+          resources:
+            requests:               # what the scheduler reserves
+              cpu: 100m
+              memory: 64Mi
+            limits:                 # same ceiling as Compose (0.5 cpu, 256m)
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:           # "can I receive traffic?" if not, the Service skips this pod
+            httpGet:
+              path: /health
+              port: 8001
+            periodSeconds: 5
+          livenessProbe:            # "am I stuck?" if not, Kubernetes restarts the container
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 10

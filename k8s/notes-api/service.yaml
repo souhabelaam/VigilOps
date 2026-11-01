@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: notes-api                   # other pods reach it at http://notes-api:8001
+  namespace: vigilops
+spec:
+  type: NodePort                    # also opens a port on the node, for the browser
+  selector:
+    app: notes-api                  # send traffic to pods with this label
+  ports:
+    - port: 8001                    # the Service's own port inside the cluster
+      targetPort: 8001              # the container's port
+      nodePort: 30002               # kind-config.yaml maps this to host port 8001
