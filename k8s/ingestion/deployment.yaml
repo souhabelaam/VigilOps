@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion
+  namespace: vigilops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingestion
+  template:
+    metadata:
+      labels:
+        app: ingestion
+    spec:
+      enableServiceLinks: false   # do not inject RABBITMQ_PORT=tcp://... style variables: our code reads those names
+      imagePullSecrets:
+        - name: gitlab-registry
+      containers:
+        - name: ingestion
+          image: registry.gitlab.com/souhabenelaam/vigilops/ingestion:2581ffdb
+          ports:
+            - containerPort: 8080
+          env:
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef: {name: vigilops-config, key: RABBITMQ_HOST}
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: RABBITMQ_USER}
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: RABBITMQ_PASS}
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef: {name: vigilops-config, key: POSTGRES_HOST}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: POSTGRES_USER}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: POSTGRES_PASSWORD}
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          readinessProbe:                  # ready only once Postgres and RabbitMQ are both connected
+            httpGet: {path: /ready, port: 8080}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: 8080}
+            initialDelaySeconds: 10
+            periodSeconds: 10

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alerting
+  namespace: vigilops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alerting
+  template:
+    metadata:
+      labels:
+        app: alerting
+    spec:
+      enableServiceLinks: false   # do not inject RABBITMQ_PORT=tcp://... style variables: our code reads those names
+      imagePullSecrets:
+        - name: gitlab-registry
+      containers:
+        - name: alerting
+          image: registry.gitlab.com/souhabenelaam/vigilops/alerting:2581ffdb
+          env:
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef: {name: vigilops-config, key: RABBITMQ_HOST}
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: RABBITMQ_USER}
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: RABBITMQ_PASS}
+            - name: NOTIFIER
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: NOTIFIER}
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: SMTP_USER}
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: SMTP_PASSWORD}
+            - name: MAIL_TO
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: MAIL_TO}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          # No probes yet, same reason as anomaly-detection.

@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anomaly-detection
+  namespace: vigilops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anomaly-detection
+  template:
+    metadata:
+      labels:
+        app: anomaly-detection
+    spec:
+      enableServiceLinks: false   # do not inject RABBITMQ_PORT=tcp://... style variables: our code reads those names
+      imagePullSecrets:
+        - name: gitlab-registry
+      containers:
+        - name: anomaly-detection
+          image: registry.gitlab.com/souhabenelaam/vigilops/anomaly-detection:2581ffdb
+          env:
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef: {name: vigilops-config, key: RABBITMQ_HOST}
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: RABBITMQ_USER}
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: RABBITMQ_PASS}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 160Mi}
+          # No probes yet: this service has no health door. Kubernetes restarts it if the process
+          # exits, but would not notice a hang. Known limit, to fix by adding /health like the collector.

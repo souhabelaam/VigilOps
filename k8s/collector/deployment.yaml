@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: collector
+  namespace: vigilops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: collector
+  template:
+    metadata:
+      labels:
+        app: collector
+    spec:
+      enableServiceLinks: false   # do not inject RABBITMQ_PORT=tcp://... style variables: our code reads those names
+      imagePullSecrets:
+        - name: gitlab-registry
+      containers:
+        - name: collector
+          image: registry.gitlab.com/souhabenelaam/vigilops/collector:2581ffdb
+          ports:
+            - containerPort: 8080          # the health door (/health, /ready)
+          env:
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef: {name: vigilops-config, key: RABBITMQ_HOST}
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: RABBITMQ_USER}
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef: {name: vigilops-secrets, key: RABBITMQ_PASS}
+            # TARGETS is not set: the default (notes-api:8001, report-api:8002) matches our Service names
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          readinessProbe:                  # ready only once connected to RabbitMQ
+            httpGet: {path: /ready, port: 8080}
+            periodSeconds: 5
+          livenessProbe:                   # restarted if the scrape loop freezes for 15 s
+            httpGet: {path: /health, port: 8080}
+            initialDelaySeconds: 10
+            periodSeconds: 10
