@@ -1,0 +1,12 @@
+# Settings that are NOT secret. Every service reads them as environment variables.
+# A Service in Kubernetes gets a stable name, so "rabbitmq" and "postgres" work exactly
+# like in Docker Compose. Passwords are not here: see secret.yaml.example.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vigilops-config
+  namespace: vigilops
+data:
+  RABBITMQ_HOST: "rabbitmq"
+  POSTGRES_HOST: "postgres"
+  FAULTS_ENABLED: "true"   # lets the fault injector break the two target apps (demo only)

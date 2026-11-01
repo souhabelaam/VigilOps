@@ -8,3 +8,6 @@ ml/data/
 *.tfstate.backup
 .terraform/
 ml/mlflow.db
+
+# Kubernetes: a real Secret manifest must never be committed
+k8s/secret.yaml
