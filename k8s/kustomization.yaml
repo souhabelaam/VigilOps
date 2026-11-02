@@ -44,4 +44,4 @@ images:
   - name: registry.gitlab.com/souhabenelaam/vigilops/anomaly-detection
     newTag: 2581ffdb
   - name: registry.gitlab.com/souhabenelaam/vigilops/alerting
-    newTag: 2581ffdb
+    newTag: dadf2127
