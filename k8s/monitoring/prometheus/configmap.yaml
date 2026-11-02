@@ -1,0 +1,18 @@
+# Prometheus' own settings: WHO to visit and HOW OFTEN.
+# "notes-api:8001" works because each app has a Service with that name (cluster DNS).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: vigilops
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s        # same rhythm as our collector, so graphs and detector see the same moments
+    scrape_configs:
+      - job_name: target-apps
+        static_configs:
+          - targets: ["notes-api:8001"]
+            labels: {app: notes-api}
+          - targets: ["report-api:8002"]
+            labels: {app: report-api}
