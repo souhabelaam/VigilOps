@@ -23,6 +23,12 @@ def test_unknown_app_has_no_metrics_link():
     assert "docker compose logs other-api" in body and "127.0.0.1" not in body
 
 
+def test_log_hint_can_be_changed_for_kubernetes(monkeypatch):
+    monkeypatch.setattr(templates.config, "LOG_HINT", "kubectl -n vigilops logs deploy/{app}")
+    _, body = templates.alert(MODEL)
+    assert "kubectl -n vigilops logs deploy/notes-api" in body and "docker compose" not in body
+
+
 def test_zero_threshold_does_not_divide_by_zero():
     _, body = templates.alert({**MODEL, "threshold": 0})
     assert "above normal" not in body

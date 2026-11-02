@@ -9,7 +9,7 @@ def _when(ts: str) -> str:
 
 
 def _check_lines(app: str) -> str:
-    lines = f"Check:      docker compose logs {app}"
+    lines = f"Check:      {config.LOG_HINT.format(app=app)}"
     port = config.APP_PORTS.get(app)
     if port:
         lines += f"\n            http://127.0.0.1:{port}/metrics"

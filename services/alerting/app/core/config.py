@@ -13,6 +13,10 @@ COOLDOWN_S = float(os.getenv("COOLDOWN_S", "60"))
 # host ports of the apps, only used to print a /metrics link in the messages
 APP_PORTS = {"notes-api": 8001, "report-api": 8002}
 
+# the command the message tells you to run to read an app's logs; {app} is replaced by the app name
+# (Compose default here, the Kubernetes Deployment overrides it with a kubectl command)
+LOG_HINT = os.getenv("LOG_HINT", "docker compose logs {app}")
+
 # where alerts go: "console" or "email" (email also prints to the console)
 NOTIFIER = os.getenv("NOTIFIER", "console")
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")

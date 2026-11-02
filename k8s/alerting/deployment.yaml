@@ -29,6 +29,8 @@ spec:
             - name: RABBITMQ_PASS
               valueFrom:
                 secretKeyRef: {name: vigilops-secrets, key: RABBITMQ_PASS}
+            - name: LOG_HINT   # not secret: the line printed after "Check:" in the alert message
+              value: "kubectl -n vigilops logs deploy/{app}"
             - name: NOTIFIER
               valueFrom:
                 secretKeyRef: {name: vigilops-secrets, key: NOTIFIER}
