@@ -3,6 +3,7 @@
 stages:
   - lint
   - test
+  - gate
 
 lint-ml:
   stage: lint
@@ -38,3 +39,35 @@ test-parity:
     - pip install --quiet -r ml/requirements.txt pytest==9.1.1
     - cd ml
     - python -m pytest tests/test_parity.py -q
+
+# Retrain-and-compare gate (MLOps). Retrains both models from the DVC-tracked data, grades the new and
+# the current models on the same fixed exam (faulty-2..5 + faulty-7) and FAILS if the new one is worse
+# (rule in ml/gate_rule.py). A failed gate stops the pipeline: the models in ml/models/ stay.
+# It runs on the LAPTOP runner: the DVC remote is a folder on the laptop (mounted at /dvc-remote in
+# the job, see docs/phase-10-mlops-gate.md). Accepted candidates are kept as a job artifact; promoting
+# one (copying it into ml/models/ and exporting for the service) is a deliberate human step.
+gate:
+  stage: gate
+  tags:
+    - laptop
+  image: python:3.12-slim
+  variables:
+    PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
+    MLFLOW_DISABLE_AGENT_HINT: "1"
+  cache:
+    key: ml-pip
+    paths:
+      - .cache/pip
+  script:
+    - pip install --quiet torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+    - pip install --quiet -r ml/requirements.txt dvc==3.67.1
+    - dvc remote modify --local laptop url /dvc-remote    # this job's path to the remote folder
+    - dvc pull                                            # fetch exactly the data version git points to
+    - cd ml
+    - python gate.py --keep-dir candidate-models
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - ml/gate-report.json
+      - ml/candidate-models/

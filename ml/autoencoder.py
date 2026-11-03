@@ -69,7 +69,9 @@ def rebuild_error(models, x):
         return sum(((m(x) - x) ** 2).mean(dim=1).numpy() for m in models) / len(models)
 
 
-def run(app, export=True, seed0=0):
+def run(app, export=True, seed0=0, out=MODELS):
+    """out: folder for the exported model. The retrain gate passes a temporary folder so a
+    candidate never overwrites the current model in ml/models/."""
     cfg = SETTINGS[app]
     windows.WINDOW, windows.LOG_LATENCY = cfg["window"], cfg["log_latency"]
     windows.STATS, windows.MEM_DELTA = cfg["stats"], cfg["mem_delta"]
@@ -84,14 +86,15 @@ def run(app, export=True, seed0=0):
     result["threshold"] = round(threshold, 4)
 
     if export:
-        MODELS.mkdir(exist_ok=True)
+        out.mkdir(parents=True, exist_ok=True)
         torch.save({"app": app, "window": cfg["window"], "log_latency": cfg["log_latency"],
+                    "train_sessions": list(PARTS["train"]),
                     "stats": cfg["stats"], "mem_delta": cfg["mem_delta"],
                     "mem_growth": cfg["mem_growth"], "features": windows.FEATURES,
                     "n_in": x_train.shape[1], "hidden": HIDDEN, "bottleneck": cfg["bottleneck"],
                     "state_dicts": [m.state_dict() for m in models],
                     "mean": data["mean"].tolist(), "std": data["std"].tolist(),
-                    "threshold": threshold}, MODELS / f"{app}.pt")
+                    "threshold": threshold}, out / f"{app}.pt")
     return result
 
 

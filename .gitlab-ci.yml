@@ -30,6 +30,7 @@ ml-pipeline:
     - changes:
         - .gitlab-ci.yml
         - ml/**/*
+        - .dvc/**/*
         - ci/ml.yml
         - ruff.toml
 
