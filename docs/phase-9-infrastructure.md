@@ -114,8 +114,9 @@ Checkov and the playbook syntax were checked before any resource was created (`a
 - **The second Ansible run reports `changed=2`, not 0.** The two kubeconfig tasks undo each other:
   one downloads the original file (with `127.0.0.1`), the next rewrites it. The server itself is not
   modified twice, but the tasks are not strictly idempotent.
-- **Checkov runs by hand, not in the pipeline**, and does not scan the Ansible playbook. Terraform
-  and Ansible are not run by GitLab.
+- **Checkov did not run in the pipeline when this phase was written** (added later, see
+  `phase-11-checkov-and-probes.md`), and it does not scan the Ansible playbook. Terraform and Ansible
+  are not run by GitLab.
 - **Terraform state is local** (`terraform.tfstate`, git-ignored). Losing it while a server exists would
   leave a server Terraform no longer knows about. Fine for one session; a real project would use a
   remote state with locking.

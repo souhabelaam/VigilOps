@@ -68,6 +68,26 @@ trivy-deps:
     - trivy fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 --no-progress --skip-dirs ml/data .
     - trivy fs --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress --skip-dirs ml/data .
 
+# Infrastructure scan, Terraform: any failed check fails the job (it is clean today: 31 passed, 2 skipped
+# on purpose, the skips and their reasons are written in infra/terraform/main.tf).
+# Same Checkov version as on the laptop, so CI and a local run give the same answer.
+checkov-terraform:
+  stage: security
+  image: python:3.12-slim
+  script:
+    - pip install --quiet --no-cache-dir --default-timeout 120 --retries 5 checkov==3.4.3
+    - checkov -d infra/terraform --framework terraform --compact --quiet
+
+# Infrastructure scan, Kubernetes manifests: REPORT ONLY (--soft-fail). It finds 137 failed checks (14 kinds,
+# mostly missing securityContext settings, no NetworkPolicy, images pinned by tag not digest). They are listed
+# in docs/phase-11-checkov-and-probes.md as a known limit; making this job blocking needs the manifests hardened first.
+checkov-kubernetes:
+  stage: security
+  image: python:3.12-slim
+  script:
+    - pip install --quiet --no-cache-dir --default-timeout 120 --retries 5 checkov==3.4.3
+    - checkov -d k8s --framework kubernetes --compact --quiet --soft-fail
+
 # Deploy: runs on YOUR laptop runner (tag "laptop"), because only it can reach the kind cluster.
 # Only on main, and only after the stages before it are green (scans, tests, images built).
 # The job logs in as the "gitlab-deployer" robot (limited to the vigilops namespace, no right on
