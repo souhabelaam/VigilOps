@@ -72,6 +72,17 @@ Two results that look odd and what they mean:
   data) instead.
 - In run 4 report-api actually improved while notes-api got worse; the candidate is still rejected, by design.
 
+## First runs in GitLab CI (2026-11-03)
+| Attempt | Result | Why |
+|---|---|---|
+| gate job #17708679906 | failed at `dvc pull` ("missing cache files") | I had pushed before adding the DVC folder to the runner's `volumes`. The runner only loaded the new config after that job had finished, so the job had no `/dvc-remote`. |
+| gate job #17709737020 | **passed** (gate accepted, exit code 0) | same commit; a new job started with the folder mounted |
+
+Before retrying, the failure was reproduced locally in a clean clone (same `python:3.12-slim` image, same
+read-only mount): `dvc pull` fetched 79 files and added 88, so the data and DVC were fine and only the
+runner configuration was missing. The first install of torch in a job takes about 3 minutes; GitLab
+saves the pip cache only after a job succeeds, so runs after the first success are faster.
+
 ## How to run it
 ```
 # locally (from ml/, venv active, data present or restored with `dvc pull`)
@@ -91,8 +102,6 @@ container of the laptop runner, by adding it to `volumes` in the runner's `confi
 `volumes = ["/cache", "/run/desktop/mnt/host/c/Users/PC/dev/dvc-remote:/dvc-remote:ro"]`.
 
 ## Honest limits
-- **The CI job was not run on GitLab when this note was written**: only `gate.py` was run locally.
-  The result of the first real run is added below once it exists.
 - **The remote is one folder on one laptop.** If the folder or the laptop is lost, the data is lost
   (only the fingerprint is in git). The raw sessions were never in git before either. A copy to a
   second place is advisable.
