@@ -18,3 +18,7 @@ k8s/secret.yaml
 *.tfstate.*
 *.tfvars
 crash.log
+
+# Ansible: the downloaded kubeconfig is an admin key
+infra/ansible/out/
+infra/.venv/

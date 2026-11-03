@@ -1,0 +1,72 @@
+# Turns the empty Ubuntu server made by Terraform into a one-node Kubernetes (k3s) that VigilOps can run on.
+# Run it twice and nothing changes the second time: each task describes a state, not a step.
+- name: Prepare the VigilOps demo server
+  hosts: all
+  become: true            # run as root (sudo)
+  vars:
+    k3s_channel: v1.31    # which Kubernetes version family k3s installs
+    public_ip: "{{ inventory_hostname }}"
+    kubeconfig_out: "{{ playbook_dir }}/out/k3s.yaml"
+
+  tasks:
+    - name: Install basic packages
+      ansible.builtin.apt:
+        name: [curl, ufw, prometheus-node-exporter]   # node-exporter exposes the server's own metrics on :9100
+        update_cache: true
+        state: present
+
+    - name: Install k3s (a small Kubernetes) with the public IP in its certificate
+      ansible.builtin.shell: >
+        curl -sfL https://get.k3s.io |
+        INSTALL_K3S_CHANNEL={{ k3s_channel }} sh -s - --tls-san {{ public_ip }}
+      args:
+        creates: /usr/local/bin/k3s     # skip if k3s is already there
+
+    - name: Wait until the node is Ready
+      ansible.builtin.command: k3s kubectl get nodes --no-headers
+      register: nodes
+      until: "'Ready' in nodes.stdout and 'NotReady' not in nodes.stdout"
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    # Host firewall. Order matters: allow SSH BEFORE enabling, or we would lock ourselves out.
+    - name: Allow SSH, Kubernetes API and the two app ports
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: ["22", "6443", "30002:30003"]
+
+    - name: Allow pod and service traffic inside k3s (otherwise ufw breaks the cluster network)
+      community.general.ufw:
+        rule: allow
+        from_ip: "{{ item }}"
+      loop: ["10.42.0.0/16", "10.43.0.0/16"]
+
+    - name: Enable the firewall, deny everything else coming in
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+
+    - name: Make sure node-exporter is running
+      ansible.builtin.service:
+        name: prometheus-node-exporter
+        state: started
+        enabled: true
+
+    # Bring the admin kubeconfig to the laptop, with the server's real address instead of 127.0.0.1.
+    - name: Download the kubeconfig
+      ansible.builtin.fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "{{ kubeconfig_out }}"
+        flat: true
+
+    - name: Point the downloaded kubeconfig at the server's public IP
+      ansible.builtin.replace:
+        path: "{{ kubeconfig_out }}"
+        regexp: "https://127.0.0.1:6443"
+        replace: "https://{{ public_ip }}:6443"
+      delegate_to: localhost
+      become: false
