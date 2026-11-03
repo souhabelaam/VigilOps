@@ -2,7 +2,6 @@
 __pycache__/
 *.pyc
 .venv/
-ml/data/
 *.pem
 *.tfstate
 *.tfstate.backup
@@ -22,3 +21,7 @@ crash.log
 # Ansible: the downloaded kubeconfig is an admin key
 infra/ansible/out/
 infra/.venv/
+
+# retrain gate output
+ml/gate-report.json
+ml/candidate-models/

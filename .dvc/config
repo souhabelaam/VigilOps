@@ -1,0 +1,4 @@
+[core]
+    remote = laptop
+['remote "laptop"']
+    url = ../../dvc-remote
