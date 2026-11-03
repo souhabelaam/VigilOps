@@ -112,6 +112,7 @@ trivy-images:
     TRIVY_USERNAME: $CI_REGISTRY_USER        # the images are in our private registry
     TRIVY_PASSWORD: $CI_REGISTRY_PASSWORD
     TRIVY_NO_PROGRESS: "true"
+    TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2   # the default mirror.gcr.io failed with BLOB_UNKNOWN
   script:
     - |
       for svc in notes-api report-api collector ingestion anomaly-detection alerting; do

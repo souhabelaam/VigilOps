@@ -61,6 +61,9 @@ trivy-deps:
   image:
     name: aquasec/trivy:0.57.1
     entrypoint: [""]
+  variables:
+    # the default mirror (mirror.gcr.io) answered "BLOB_UNKNOWN" on every run: same database, other registry
+    TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2
   script:
     - trivy fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 --no-progress --skip-dirs ml/data .
     - trivy fs --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress --skip-dirs ml/data .
