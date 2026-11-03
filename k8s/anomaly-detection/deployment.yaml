@@ -32,5 +32,10 @@ spec:
           resources:
             requests: {cpu: 50m, memory: 64Mi}
             limits: {cpu: 250m, memory: 160Mi}
-          # No probes yet: this service has no health door. Kubernetes restarts it if the process
-          # exits, but would not notice a hang. Known limit, to fix by adding /health like the collector.
+          readinessProbe:                  # ready once the models are loaded and the output queue is connected
+            httpGet: {path: /ready, port: 8080}
+            periodSeconds: 5
+          livenessProbe:                   # restarted if the consumer loop freezes for 15 s
+            httpGet: {path: /health, port: 8080}
+            initialDelaySeconds: 10
+            periodSeconds: 10
