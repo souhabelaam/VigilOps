@@ -11,3 +11,10 @@ ml/mlflow.db
 
 # Kubernetes: a real Secret manifest must never be committed
 k8s/secret.yaml
+
+# Terraform: the state is the receipt of what exists in AWS and can hold secrets
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
