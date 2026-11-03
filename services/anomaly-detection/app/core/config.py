@@ -9,6 +9,10 @@ RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "")
 INPUT_QUEUE = os.getenv("INPUT_QUEUE", "rates")
 OUTPUT_QUEUE = os.getenv("OUTPUT_QUEUE", "anomalies")
 
+# health door for Kubernetes probes (liveness /health, readiness /ready)
+HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8080"))
+HEALTH_MAX_SILENCE_S = float(os.getenv("HEALTH_MAX_SILENCE_S", "15"))
+
 MODELS_DIR = Path(os.getenv("MODELS_DIR", "models"))
 APPS = ["notes-api", "report-api"]
 
