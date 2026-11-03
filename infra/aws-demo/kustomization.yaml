@@ -1,0 +1,21 @@
+# Variant of the platform for the throwaway AWS server (Phase 9 demo).
+# It reuses everything in k8s/ and removes only the three SealedSecret files:
+# they were encrypted for the kind cluster's key, so the new cluster could not decrypt them.
+# The three real Secrets are created by hand on the new cluster instead (see docs/phase-9-*.md).
+#
+#   kubectl apply -k infra/aws-demo
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../k8s
+
+patches:
+  - target:
+      kind: SealedSecret
+    patch: |-
+      $patch: delete
+      apiVersion: bitnami.com/v1alpha1
+      kind: SealedSecret
+      metadata:
+        name: not-used
