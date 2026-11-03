@@ -5,7 +5,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - namespace.yaml
+  - secrets/vigilops-secrets-sealed.yaml
+  - secrets/gitlab-registry-sealed.yaml
+  - secrets/grafana-admin-sealed.yaml
   - configmap.yaml
   - postgres/init-configmap.yaml
   - postgres/pvc.yaml

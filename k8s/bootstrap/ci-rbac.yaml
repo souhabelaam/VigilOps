@@ -1,0 +1,61 @@
+# One-time setup, done by a cluster admin:  kubectl apply -f k8s/bootstrap/
+# Creates the "robot user" the GitLab pipeline uses to deploy. It can only work inside
+# the vigilops namespace, and it cannot delete anything or touch RBAC.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitlab-deployer
+  namespace: vigilops
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitlab-deployer
+  namespace: vigilops
+rules:
+  # objects our manifests contain (apply = get + create + patch)
+  - apiGroups: [""]
+    resources: ["configmaps", "services", "persistentvolumeclaims"]
+    verbs: ["get", "list", "create", "patch", "update"]
+  # encrypted Secrets: the robot only applies SealedSecrets; the controller in kube-system
+  # decrypts them. The robot has NO right on plain Secrets (cannot read or change passwords).
+  - apiGroups: ["bitnami.com"]
+    resources: ["sealedsecrets"]
+    verbs: ["get", "list", "create", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "create", "patch", "update"]
+  # read-only, needed by "kubectl rollout status" and "kubectl wait"
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["watch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitlab-deployer
+  namespace: vigilops
+subjects:
+  - kind: ServiceAccount
+    name: gitlab-deployer
+    namespace: vigilops
+roleRef:
+  kind: Role
+  name: gitlab-deployer
+  apiGroup: rbac.authorization.k8s.io
+---
+# Kubernetes no longer creates a token for a ServiceAccount by itself: this Secret asks for a long-lived one.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-deployer-token
+  namespace: vigilops
+  annotations:
+    kubernetes.io/service-account.name: gitlab-deployer
+type: kubernetes.io/service-account-token
