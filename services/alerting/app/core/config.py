@@ -10,6 +10,10 @@ QUEUE_NAME = os.getenv("QUEUE_NAME", "anomalies")
 # an incident is over when an app sends no anomaly event for this long
 COOLDOWN_S = float(os.getenv("COOLDOWN_S", "60"))
 
+# health door for Kubernetes probes (liveness /health, readiness /ready)
+HEALTH_PORT = int(os.getenv("HEALTH_PORT", "8080"))
+HEALTH_MAX_SILENCE_S = float(os.getenv("HEALTH_MAX_SILENCE_S", "15"))
+
 # host ports of the apps, only used to print a /metrics link in the messages
 APP_PORTS = {"notes-api": 8001, "report-api": 8002}
 

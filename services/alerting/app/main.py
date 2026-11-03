@@ -3,6 +3,7 @@ import logging
 import signal
 
 from app.core import config
+from app.core.health import Health, start_server
 from app.repositories.queue import QueueConsumer
 from app.services.alerter import Alerter
 from app.services.notifier import ConsoleNotifier, EmailNotifier, MultiNotifier
@@ -36,10 +37,19 @@ def main() -> None:
     signal.signal(signal.SIGTERM, _stop)   # docker stop
     signal.signal(signal.SIGINT, _stop)    # Ctrl+C
 
+    health = Health(config.HEALTH_MAX_SILENCE_S)
+    start_server(health, config.HEALTH_PORT)   # open the door first: Kubernetes can ask during startup
+
     alerter = Alerter(build_notifier(), config.COOLDOWN_S)
     consumer = QueueConsumer(config.RABBITMQ_HOST, config.RABBITMQ_PORT,
                              config.RABBITMQ_USER, config.RABBITMQ_PASS, config.QUEUE_NAME)
-    consumer.consume(alerter.handle, lambda: running, on_idle=alerter.check)
+    health.set_ready(True)   # notifier built; the consumer connects (and retries) from here on
+
+    def should_run() -> bool:
+        health.beat()   # the consumer asks this at least once a second, even with an empty queue
+        return running
+
+    consumer.consume(alerter.handle, should_run, on_idle=alerter.check)
     log.info("alerting stopped")
 
 
