@@ -83,6 +83,31 @@ read-only mount): `dvc pull` fetched 79 files and added 88, so the data and DVC 
 runner configuration was missing. The first install of torch in a job takes about 3 minutes; GitLab
 saves the pip cache only after a job succeeds, so runs after the first success are faster.
 
+## Rejection proof in GitLab CI (2026-11-03)
+The gate had only accepted models in CI, so I made it refuse one there too. On a throwaway branch
+(`proof/rejected-model`, pushed to GitLab only, deleted afterwards) I changed one line in `ci/ml.yml`:
+`python gate.py --extra-train faulty-1,faulty-6 --keep-dir candidate-models`, which trains the candidate
+with two faulty sessions mixed in as if they were healthy. Gate job #17712477909 ended **red** (exit code 1):
+
+```
+candidate: trained on ['normal-1', 'normal-2', 'normal-4', 'faulty-1', 'faulty-6'], 150 epochs, 5 seeds
+app        model       F1  precision  recall  false/h  delay s
+notes-api  current   0.92      0.966   0.878      4.7      1.5
+notes-api  candidate 0.803     0.974   0.683      3.6     15.0
+report-api current   0.868     0.784   0.972      7.5      1.0
+report-api candidate 0.957     1.0     0.917      0.0      4.0
+rule: F1 may drop by at most 0.05; false alerts/h may grow to current x 1.5 + 2.0
+GATE: REJECTED - the current models stay
+  notes-api: F1 fell from 0.92 to 0.803 (more than 0.05 allowed)
+ERROR: Job failed: exit code 1
+```
+
+The result is the same as the local run 4: the CI runner reproduces it. The candidate learned the faults as
+normal, so notes-api recall fell (0.878 -> 0.683) and detection took 15 s instead of 1.5 s. report-api got
+better, but the rule rejects if either app gets worse. The warning about `candidate-models/` having no
+files appears because a rejected model is not kept. The red job makes the ml pipeline fail, so the
+refusal is visible in GitLab.
+
 ## How to run it
 ```
 # locally (from ml/, venv active, data present or restored with `dvc pull`)
