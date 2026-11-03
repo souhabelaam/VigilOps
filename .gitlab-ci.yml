@@ -3,6 +3,7 @@
 stages:
   - security
   - pipelines
+  - deploy
 
 services-pipeline:     # not just "services": that is a reserved GitLab CI word
   stage: pipelines
@@ -10,6 +11,10 @@ services-pipeline:     # not just "services": that is a reserved GitLab CI word
     include: ci/services.yml
     strategy: depend        # the parent is green only if the child is green
   rules:
+    # On main it ALWAYS runs: all 6 images are built for every commit, so the tag the deploy job
+    # uses ($CI_COMMIT_SHORT_SHA) exists even when the commit only changed k8s/ or docs/.
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    # On other branches it only runs when something it cares about changed.
     - changes:
         - .gitlab-ci.yml
         - services/**/*
@@ -58,3 +63,34 @@ trivy-deps:
   script:
     - trivy fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 --no-progress --skip-dirs ml/data .
     - trivy fs --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress --skip-dirs ml/data .
+
+# Deploy: runs on YOUR laptop runner (tag "laptop"), because only it can reach the kind cluster.
+# Only on main, and only after the stages before it are green (scans, tests, images built).
+# The job logs in as the "gitlab-deployer" robot (limited to the vigilops namespace, no right on
+# plain Secrets): its kubeconfig comes from the masked + protected variable KUBECONFIG_B64.
+deploy:
+  stage: deploy
+  tags:
+    - laptop
+  image: alpine:3.20
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - apk add --no-cache kubectl kustomize
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
+    - chmod 600 ~/.kube/config
+    # Point every image at the tag built by THIS commit (changes the job's copy of the file only).
+    - |
+      cd k8s
+      for svc in notes-api report-api collector ingestion anomaly-detection alerting; do
+        kustomize edit set image $CI_REGISTRY_IMAGE/$svc=$CI_REGISTRY_IMAGE/$svc:$CI_COMMIT_SHORT_SHA
+      done
+      cd ..
+    - kubectl apply -k k8s/
+    # Wait until every Deployment has rolled out; a broken release makes the job (and pipeline) fail.
+    - |
+      for d in postgres rabbitmq notes-api report-api collector ingestion anomaly-detection alerting prometheus grafana; do
+        kubectl rollout status deployment/$d --timeout=300s
+      done
+    - kubectl get pods
