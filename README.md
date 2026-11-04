@@ -33,12 +33,12 @@ container); `ml/check_numpy.py` proves both give the same scores.
 | `docker-compose.yml`, `db/` | the whole stack on one machine | phase 3 |
 | `k8s/` | Kubernetes manifests, kustomize, monitoring | phase 7 |
 | `.gitlab-ci.yml`, `ci/` | pipeline: lint, test, scans, build, gate, deploy | phases 6, 8, 10, 11 |
-| `infra/` | Terraform (EC2), Ansible (k3s, firewall), AWS demo overlay | phase 9 |
+| `infra/` | Terraform (EC2), Ansible (k3s, firewall), AWS overlay for kustomize | phase 9 |
 
 ## Requirements
 
 Windows 11 with WSL2 (or Linux), Docker Desktop, about 3 GB of RAM given to WSL (`.wslconfig`),
-Python 3.12, `kubectl`, `kind`. For the cloud demo: Terraform, Ansible (in WSL), an AWS account.
+Python 3.12, `kubectl`, `kind`. For the cloud deployment: Terraform, Ansible (in WSL), an AWS account.
 
 ## Rebuild it, step by step
 
@@ -117,9 +117,11 @@ changes, and deploys to the cluster through a runner on the laptop. How to regis
 CI variable it needs (`KUBECONFIG_B64`) is in [docs/phase-8-automatic-deploy.md](docs/phase-8-automatic-deploy.md).
 Checkov checks Terraform (blocking) and the Kubernetes manifests (report only): [docs/phase-11-checkov-and-probes.md](docs/phase-11-checkov-and-probes.md).
 
-### 5. Cloud demo (AWS Learner Lab)
+### 5. Cloud deployment (AWS Learner Lab)
 
-Create, show, destroy in the same session, because credentials and budget are temporary:
+This part is temporary by design. The server was created, verified and destroyed in one session, because
+the Learner Lab credentials and budget are temporary. Nothing runs in AWS now; the evidence (plan, Ansible
+run, pods, screenshots) is in [docs/phase-9-infrastructure.md](docs/phase-9-infrastructure.md). To repeat it:
 
 ```
 cd infra/terraform && terraform init && terraform plan     # read the plan first
