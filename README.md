@@ -4,6 +4,8 @@ VigilOps watches two small web apps, learns what "healthy" looks like, and sends
 wrong. It is a student project that combines microservices, machine learning and DevOps: queues, an
 autoencoder, a CI/CD pipeline with security scans, Kubernetes, Terraform and Ansible.
 
+![Grafana dashboard during an injected CPU fault](docs/images/phase-7-grafana-cpu-fault.png)
+
 The full specification is in [docs/PROJECT.md](docs/PROJECT.md). Every phase has its own note in [docs/](docs/).
 
 ## Contents
